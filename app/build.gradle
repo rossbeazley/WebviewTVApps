@@ -3,13 +3,13 @@ apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
 android {
-    compileSdkVersion 29
-    buildToolsVersion "29.0.1"
+    compileSdkVersion 30
+    buildToolsVersion "30.0.1"
 
     defaultConfig {
-        applicationId "LVT.uk.co.rossbeazley.webviewtvapps"
-        minSdkVersion 28
-        targetSdkVersion 29
+        applicationId "uk.co.rossbeazley.webviewtvapps"
+        minSdkVersion 21
+        targetSdkVersion 30
         versionCode 1
         versionName "1.0"
 
