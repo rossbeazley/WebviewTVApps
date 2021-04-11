@@ -8,11 +8,10 @@ import android.graphics.Color
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.SurfaceView
+import android.view.View
 import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.webkit.*
-import java.net.CookieHandler
-import java.net.CookiePolicy
 
 
 class MainActivity : Activity() {
@@ -27,25 +26,34 @@ class MainActivity : Activity() {
         webview = WebView(this).apply {
 
             settings.apply {
-                userAgentString="Mozilla/5.0 (Linux; Android 8.0.0; SHIELD Android TV Build/OPR6.170623.010; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/69.0.3497.100 Mobile Safari/537.36"
+                userAgentString="smarttv_AFTMM-TCL-TS8011_Build_1234_Chromium_41.0.2250.2"
                 javaScriptEnabled=true
                 domStorageEnabled=true
-                settings.useWideViewPort = true
                 mediaPlaybackRequiresUserGesture = false
+                mixedContentMode = 0
+
+                javaScriptCanOpenWindowsAutomatically = true
+                builtInZoomControls = true
+                displayZoomControls = false
+                loadWithOverviewMode = true
+
                 webViewClient =
-                    JSLoadingWebClient()
+                    SecuregateWebClient()
                 setAppCachePath(cacheDir.absolutePath)
                 setAppCacheEnabled(true)
 
                 webChromeClient = object : WebChromeClient() {
                     override fun getDefaultVideoPoster() : Bitmap = createBitmap(100, 100, ARGB_8888)
                                                                         .apply { eraseColor(Color.TRANSPARENT) }
+
+
                 }
             }
 
             setBackgroundColor(Color.TRANSPARENT)
 
-            loadUrl("https://app.10ft.itv.com/androidtv/")
+            setInitialScale(150)
+            loadUrl("https://amazonfire-p06.channel4.com/amazonfire/index.html")
             onResume()
             resumeTimers()
 
@@ -57,19 +65,9 @@ class MainActivity : Activity() {
         addContentView(webview, ViewGroup.LayoutParams(MATCH_PARENT,MATCH_PARENT))
 
         bridge = Bridge(webview, surfaceView)
-
-        enableCookies(webview)
-
     }
 
-    //Needs cookies for cdn auth
-    private fun enableCookies(webview: WebView) {
-        val DEFAULT_COOKIE_MANAGER = java.net.CookieManager()
-        DEFAULT_COOKIE_MANAGER.setCookiePolicy(CookiePolicy.ACCEPT_ORIGINAL_SERVER)
-        CookieHandler.setDefault(DEFAULT_COOKIE_MANAGER)
-        android.webkit.CookieManager.getInstance().setAcceptCookie(true)
-        android.webkit.CookieManager.getInstance().setAcceptThirdPartyCookies(webview, true)
-    }
+
 
 
     override fun onBackPressed(){}
