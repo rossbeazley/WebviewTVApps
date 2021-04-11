@@ -50,6 +50,25 @@
             }
         }
 
+        const _setAttributeFunction = elementPrototype.setAttribute;
+        elementPrototype.setAttribute = function() {
+            if (arguments[0]==='src') {
+                exobridge.setSrc(arguments[1]);
+            }  else {
+                _setAttributeFunction.apply(this,arguments);
+            }
+        }
+
+        const _getAttributeFunction = elementPrototype.getAttribute;
+        elementPrototype.getAttribute = function() {
+            if (arguments[0]==='src') {
+                return exobridge.getSrc();
+            }  else {
+                const rtn = _getAttributeFunction.apply(this,arguments);
+                return rtn;
+            }
+        };
+
         Object.defineProperty(elementPrototype,'ended', {
             configurable: true,
             get: function()   { return exobridge.ended()  }
@@ -66,8 +85,6 @@
     ownIt(document.createElement('video'));
     ownIt(document.createElement('source'));
 
-    document.querySelector(".app").style.background="none";
-
     if(!window.VideoDomBridge) {
         window.VideoDomBridge = {
             raiseEvent : function(event) {
@@ -78,6 +95,27 @@
              }
         }
     }
+
+    // ITV specific tweak to hide video element when it is added to the dom, NOT WELL WRITTEN
+    function callback(mutationList, observer) {
+      mutationList.forEach( (mutation) => {
+        switch(mutation.type) {
+          case 'childList':
+             document.querySelectorAll("video").forEach( (e)=>{e.style.display="none";} )
+            break;
+        }
+      });
+    }
+    const targetNode = document.querySelector("body");
+    const observerOptions = {
+      childList: true,
+      attributes: true,
+
+      // Omit (or set to false) to observe only changes to the parent node
+      subtree: true
+    }
+    const observer = new MutationObserver(callback);
+    observer.observe(targetNode, observerOptions);
 
     console.log("LOADED>.....");
 })();

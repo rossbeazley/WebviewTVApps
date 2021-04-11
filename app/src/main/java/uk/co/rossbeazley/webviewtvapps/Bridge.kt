@@ -13,6 +13,7 @@ import com.google.android.exoplayer2.ExoPlaybackException
 import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.SimpleExoPlayer
 import com.google.android.exoplayer2.analytics.AnalyticsListener
+import com.google.android.exoplayer2.source.ProgressiveMediaSource
 import com.google.android.exoplayer2.source.hls.HlsMediaSource
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import com.google.android.exoplayer2.util.Util
@@ -31,15 +32,24 @@ class Bridge(val webview: WebView, val surfaceView: SurfaceView) : Player.EventL
 
     private var src: String = ""
     @JavascriptInterface
-    fun setSrc(src: String) {
-        this.src = src
+    fun setSrc(src: String?) {
+        this.src = src?:""
+        if(this.src.isBlank()) {tearDownExoplayer()}
     }
 
-
+    @JavascriptInterface
+    fun tearDownExoplayer() {
+        exoplayer.stop()
+        webview.post {
+            surfaceView.visibility = View.GONE
+        }
+        this.src = ""
+    }
 
     @JavascriptInterface
     fun getSrc() : String = this.src
 
+    var preparing = true
     @JavascriptInterface
     fun load() {
         if(src.isEmpty()) return
@@ -51,10 +61,17 @@ class Bridge(val webview: WebView, val surfaceView: SurfaceView) : Player.EventL
     }
 
     private fun prepareExoplayerWith(src: String) {
-
+        preparing = true
         val userAgent = Util.getUserAgent(webview.context, "LVT")
         val dataSourceFactory = DefaultDataSourceFactory(webview.context, userAgent)
-        val mediaSourceFactory = HlsMediaSource.Factory(dataSourceFactory)
+
+        val mediaSourceFactory = with(src) {
+            when {
+                endsWith("mp4") -> ProgressiveMediaSource.Factory(dataSourceFactory)
+                contains(".m3u8") -> HlsMediaSource.Factory(dataSourceFactory)
+                else -> HlsMediaSource.Factory(dataSourceFactory)
+            }
+        }
         val videoSource = mediaSourceFactory.createMediaSource(Uri.parse(src))
         exoplayer.prepare(videoSource)
 
@@ -118,19 +135,18 @@ class Bridge(val webview: WebView, val surfaceView: SurfaceView) : Player.EventL
         isSeeking = false
     }
 
-    @JavascriptInterface
-    fun tearDownExoplayer() {
-        exoplayer.stop()
-        webview.post {
-            surfaceView.visibility = View.GONE
-        }
-        this.src = ""
-    }
 
     override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
         when (playbackState) {
-            Player.STATE_READY -> if(playWhenReady) { videoElementEvent("playing")  }
-                                    else { videoElementEvent( "canplay", "durationchange") }
+            Player.STATE_READY -> {
+                if(preparing) {
+                    videoElementEvent("loadeddata", "canplay", "durationchange")
+                    preparing=false
+                }
+                if (playWhenReady) {
+                    videoElementEvent("playing")
+                }
+            }
             Player.STATE_ENDED -> {
                 videoElementEvent("ended")
                 isEnded = true;

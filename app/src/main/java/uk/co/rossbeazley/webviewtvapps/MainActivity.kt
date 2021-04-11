@@ -11,6 +11,8 @@ import android.view.SurfaceView
 import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.webkit.*
+import java.net.CookieHandler
+import java.net.CookiePolicy
 
 
 class MainActivity : Activity() {
@@ -25,12 +27,13 @@ class MainActivity : Activity() {
         webview = WebView(this).apply {
 
             settings.apply {
-                userAgentString="Mozilla/5.0 (Linux; U; Android 5.0.1; NVIDIA Shield; smart-tv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Safari/537.36"
+                userAgentString="Mozilla/5.0 (Linux; Android 8.0.0; SHIELD Android TV Build/OPR6.170623.010; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/69.0.3497.100 Mobile Safari/537.36"
                 javaScriptEnabled=true
                 domStorageEnabled=true
+                settings.useWideViewPort = true
                 mediaPlaybackRequiresUserGesture = false
                 webViewClient =
-                    SecuregateWebClient()
+                    JSLoadingWebClient()
                 setAppCachePath(cacheDir.absolutePath)
                 setAppCacheEnabled(true)
 
@@ -42,8 +45,7 @@ class MainActivity : Activity() {
 
             setBackgroundColor(Color.TRANSPARENT)
 
-            setInitialScale(150)
-            loadUrl("https://www.live.bbctvapps.co.uk/tap/iplayer/?origin=portal")
+            loadUrl("https://app.10ft.itv.com/androidtv/")
             onResume()
             resumeTimers()
 
@@ -55,40 +57,25 @@ class MainActivity : Activity() {
         addContentView(webview, ViewGroup.LayoutParams(MATCH_PARENT,MATCH_PARENT))
 
         bridge = Bridge(webview, surfaceView)
+
+        enableCookies(webview)
+
+    }
+
+    //Needs cookies for cdn auth
+    private fun enableCookies(webview: WebView) {
+        val DEFAULT_COOKIE_MANAGER = java.net.CookieManager()
+        DEFAULT_COOKIE_MANAGER.setCookiePolicy(CookiePolicy.ACCEPT_ORIGINAL_SERVER)
+        CookieHandler.setDefault(DEFAULT_COOKIE_MANAGER)
+        android.webkit.CookieManager.getInstance().setAcceptCookie(true)
+        android.webkit.CookieManager.getInstance().setAcceptThirdPartyCookies(webview, true)
     }
 
 
+    override fun onBackPressed(){}
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-
-        val mappedKey = when(event.keyCode) {
-            KeyEvent.KEYCODE_DPAD_UP -> 19
-            KeyEvent.KEYCODE_DPAD_DOWN -> 20
-            KeyEvent.KEYCODE_DPAD_LEFT ->  21
-            KeyEvent.KEYCODE_DPAD_RIGHT -> 22
-            KeyEvent.KEYCODE_ENTER -> 23
-            KeyEvent.KEYCODE_DEL -> 4
-            else -> 0
-        }
-
-        val eventString = when(event.action) {
-            KeyEvent.ACTION_DOWN -> "keydown"
-            else -> "keyup"
-        }
-
-        val keyEventDispatchJS = """
-        
-        function press(key, event) {
-            var keyDownEvent = document.createEvent("Events");
-            keyDownEvent.initEvent(event, true, true);
-            keyDownEvent.which = key; 
-            keyDownEvent.keyCode = key;
-            document.dispatchEvent(keyDownEvent);            
-        }
-                
-        press( ${mappedKey}, "${eventString}" );
-        """
-        webview.evaluateJavascript(keyEventDispatchJS){}
-        return true
+        return webview.dispatchKeyEvent(event)
     }
 
 
